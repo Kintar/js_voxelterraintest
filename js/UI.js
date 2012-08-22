@@ -7,6 +7,7 @@ define(["dat.gui.min"], function() {
                 UI.instance = new dat.GUI();
                 UI.instance.add(dataContext, "TerrainGeneration", 0, 100);
                 UI.instance.add(dataContext, "TerrainTesselation", 0, 100);
+                UI.instance.add(dataContext, "Stop");
                 this.DataContext = dataContext;
             }
         },
@@ -16,7 +17,9 @@ define(["dat.gui.min"], function() {
             if (this.DataContext.TerrainGeneration % 100 === 0)
                 this.direction *= -1;
 
-            UI.instance.__controllers[0].updateDisplay();
+            for (var i in UI.instance.__controllers) {
+                UI.instance.__controllers[i].updateDisplay();
+            }
         }
     };
 

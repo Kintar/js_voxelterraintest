@@ -1,4 +1,4 @@
-define(["UI", "three.min"], function(UI) {
+define(["UI", "three.min", "Components", "Stats"], function(UI) {
     var Game = {
         TerrainTesselation: 0,
         TerrainGeneration: 0,
@@ -8,19 +8,41 @@ define(["UI", "three.min"], function(UI) {
             if (this.Running) return;
 
             UI.Init(this);
+            this.InitStats();
             this.Running = true;
             this.Run();
+        },
+
+        InitStats: function() {
+            if (this.stats) return;
+            
+            var stats = new Stats();
+            stats.domElement.style.position = "absolute";
+            stats.domElement.style.left = "0px";
+            stats.domElement.style.bottom = "0px";
+            
+            document.body.appendChild(stats.domElement);
+            
+            this.stats = stats;
         },
 
         Run: function() {
             if (Game.Running) requestAnimationFrame(Game.Run);
 
-            UI.Update();
             Game.Update();
         },
 
         Update: function() {
+            this.stats.begin();
 
+            UI.Update();
+            Game.TerrainTesselation = 0;
+            
+            this.stats.end();
+        },
+        
+        Stop: function() {
+            this.Running = false;
         }
     };
     
