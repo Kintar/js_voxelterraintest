@@ -3,6 +3,8 @@
 Just an experiment in creating and rendering very simple voxel-based terrain
 with JavaScript and THREE.js.
 
+The current version of the application can be viewed [here](https://c9.io/kintar/js_voxelterraintest/workspace/index.html)
+
 ## TODO:
 
 ### Phase 1
