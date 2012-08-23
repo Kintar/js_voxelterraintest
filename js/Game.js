@@ -16,9 +16,7 @@ define([
                 }
                 
                 ComponentManager.LoadComponent("UI", this.InitUI);
-                ComponentManager.LoadComponent("TerrainGenerator", function(c) {
-                    c.Regenerate(256, 256, 256);
-                });
+                ComponentManager.LoadComponent("TerrainGenerator");
                 
                 this.InitStats();
                 
@@ -38,7 +36,7 @@ define([
                 this.Running = true;
                 this.clock.start();
                 this.GameLoop();
-                ComponentManager.Components.TerrainGenerator.Regenerate(256,256,256);
+                ComponentManager.Components.TerrainGenerator.Regenerate(64,64,64);
                 Game.UI.Remove(Game, "Start", "Game Control");
                 Game.UI.Register(Game, "Stop", {folder: "Game Control"});
             },

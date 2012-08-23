@@ -14,7 +14,15 @@ define(function () {
                 var cm = this;
                 this.PendingComponents++;
                 require(["Components/" + name], function(component) {
-                    callback(component);
+                    if (callback) {
+                        try {
+                            callback(component);
+                        }
+                        catch (err) {
+                            console.error("Failed to invoke callback for component", name, err);
+                            return;
+                        }
+                    }
                     cm.Components[name] = component;
                     console.log("Added component", name, "to ComponentManager");
                 });
