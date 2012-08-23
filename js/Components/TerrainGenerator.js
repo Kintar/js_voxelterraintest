@@ -1,4 +1,4 @@
-define(["lib/simplexnoise", "thirdParty/three.min", "Components/UI"], function(noise, three, UI) {
+define(["lib/simplexnoise", "thirdParty/three.min", "Components/UI", "Components/TerrainRenderer"], function(noise, three, UI) {
     
     var TerrainGenerator = function() {
         this.noise = new noise();
@@ -27,15 +27,20 @@ define(["lib/simplexnoise", "thirdParty/three.min", "Components/UI"], function(n
         Tesselating: false,
         TesselatedVoxels: 0,
         
+        SetRenderer: function(terrainRenderer) {
+            this.renderer = terrainRenderer;
+        },
+        
         Regenerate: function(width, depth, height) {
             console.log("Requested generation of terrain", width, depth, height);
             
             this.width = width;
-            this.height = height;
-            this.depth = depth;
-            this.targetVoxelCount = width * depth * height;
+            this.height = height || width;
+            this.depth = depth || width;
+            this.targetVoxelCount = this.width * this.depth * this.height;
             this.terrainVoxels = [];
             this.terrainVertices = [];
+            this.terrainFaces = [];
             this.terrainMesh = undefined;
             
             this.currentHeight = this.height;
@@ -46,7 +51,10 @@ define(["lib/simplexnoise", "thirdParty/three.min", "Components/UI"], function(n
             this.Tesselation = 0;
             this.Generating = true;
             this.Tesselating = false;
-            this.TesselatedVoxels = 0;
+            this.MeshedVoxels = 0;
+            
+            this.stride = this.width;
+            this.slice = this.width * this.height;
         },
         
         Update: function() {
@@ -71,6 +79,7 @@ define(["lib/simplexnoise", "thirdParty/three.min", "Components/UI"], function(n
             while (elapsed < 1 / 120) {
                 this.currentDepth--;
                 if (this.currentDepth < 0) {
+                    this.terrainVoxels.reverse();
                     console.log("Terrain generation complete.  Voxels:", this.terrainVoxels.length);
                     this.Generating = false;
                     this.Generation = 100;
@@ -105,6 +114,8 @@ define(["lib/simplexnoise", "thirdParty/three.min", "Components/UI"], function(n
             this.currentDepth = this.depth;
             this.Tesselating = true;
             this.Tesselation = 0;
+            this.terrainVertices = [];
+            this.terrainFaces = [];
         },
         
         TesselationStep: function() {
@@ -115,9 +126,21 @@ define(["lib/simplexnoise", "thirdParty/three.min", "Components/UI"], function(n
             while (elapsed < 1 / 120) {
                 this.currentDepth--;
                 if (this.currentDepth < 0) {
-                    console.log("Terrain tesselation complete.");
+                    console.log("Terrain tesselation complete");
                     this.Tesselating = false;
                     this.Tesselation = 100;
+                    
+                    var geom = new three.Geometry();
+                    geom.vertices = this.terrainVertices;
+                    geom.faces = this.terrainFaces;
+                    geom.computeFaceNormals();
+                    
+                    this.terrainMesh = new three.Mesh(geom, new three.MeshLambertMaterial());
+                    this.terrainMesh.position.set(0);
+                    
+                    if (this.renderer) {
+                        this.renderer.SetMesh(this.terrainMesh);
+                    }
                     break;
                 }
                 
@@ -127,43 +150,64 @@ define(["lib/simplexnoise", "thirdParty/three.min", "Components/UI"], function(n
                     this.currentWidth = this.width;
                     while (this.currentWidth > 0) {
                         this.currentWidth--;
-                        voxel = this.targetVoxelCount - (this.currentDepth * this.currentHeight * this.currentWidth);
+                        voxel = this.currentDepth * this.currentHeight * this.currentWidth;
                         
                         // Skip filled voxels
+                        this.MeshedVoxels++;
                         if (this.terrainVoxels[voxel]) continue;
                         
                         var facing = FaceDirection.Last;
-                        while (facing >= FaceDirection.First) {
-                            this.TestAndMakeFace(this.currentWidth, this.currentDepth, this.currentHeight, facing);
+                        while (facing >= FaceDirection.DOWN) {
+                            var testVoxel = this.VoxelNumberFrom(voxel, facing);
+                            if (this.terrainVoxels[testVoxel]) {
+                                this.GenerateFace(voxel, facing);
+                            }
                             facing--;
                         }
-                        this.TesselatedVoxels++;
                     }
                 }
 
-                this.Tesselation = Math.floor((this.TesselatedVoxels / this.targetVoxelCount) * 100);
+                this.Tesselation = Math.floor((this.MeshedVoxels / this.targetVoxelCount) * 100);
                 elapsed += this.clock.getDelta();
             }
         },
         
-        MakeFace: function(x,z,y, facing) {
+        GenerateFace: function(voxelNumber, facing) {
+            // Bottom left inward vertex
+            var y = voxelNumber % (this.width * this.depth);
+            var z = voxelNumber % this.depth;
+            var x = voxelNumber % this.width;
             
-        },
-        
-        TestAndMakeFace: function(x, z, y, face) {
-            var voxelNumber = this.targetVoxelCount - (x * z * y);
+            var vertices;
             
-            var facing = FaceDirection.Last;
-            
-            while (facing >= FaceDirection.First) {
-                if (this.VoxelFacingFrom(facing, voxelNumber)) {
-                    this.MakeFace(x, z, y, facing);
-                }
-                facing--;
+            switch (facing) {
+                case FaceDirection.UP:
+                    vertices = [
+                        new three.Vector3(x, y + this.slice, z),
+                        new three.Vector3(x, y + this.slice, z + this.stride),
+                        new three.Vector3(x + 1, y + this.slice, z + this.stride),
+                        new three.Vector3(x + 1, y + this.slice, z)
+                    ];
+                    break;
+                case FaceDirection.DOWN:
+                    vertices = [
+                        new three.Vector3(x, y, z),
+                        new three.Vector3(x + 1, y, z),
+                        new three.Vector3(x + 1, y, z + this.stride),
+                        new three.Vector3(x + 1, y, z + this.stride)
+                    ];
+                    break;
             }
+            
+            for (var v in vertices) {
+                this.terrainVertices.push(vertices[v]);
+            }
+            
+            var vertCount = this.terrainVertices.length - 1;
+            this.terrainFaces.push(new three.Face4(vertCount - 3, vertCount - 2, vertCount - 1, vertCount));
         },
         
-        VoxelFacingFrom: function(facing, voxelNumber) {
+        VoxelNumberFrom: function(voxelNumber, facing) {
             var vector = facing > 2 ? -1 : 1;
             switch (facing % 3) {
                 case 0:
@@ -176,8 +220,9 @@ define(["lib/simplexnoise", "thirdParty/three.min", "Components/UI"], function(n
                     voxelNumber *= (this.width * vector);
                     break;
             }
-            return this.terrainVoxels[voxelNumber] || false;
+            return voxelNumber;
         }
+        
     };
     
     return new TerrainGenerator();

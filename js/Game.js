@@ -16,7 +16,12 @@ define([
                 }
                 
                 ComponentManager.LoadComponent("UI", this.InitUI);
-                ComponentManager.LoadComponent("TerrainGenerator");
+                ComponentManager.LoadComponent("TerrainRenderer", function() {
+                    Game.InitRenderer();
+                });
+                ComponentManager.LoadComponent("TerrainGenerator", function(c) {
+                    c.SetRenderer(ComponentManager.Components.TerrainRenderer);
+                });
                 
                 this.InitStats();
                 
@@ -27,6 +32,40 @@ define([
                 Game.UI = ui;
                 ui.Register(Game, "Start", {folder: "Game Control"});
             },
+            
+            
+            InitRenderer: function() {
+                this.renderer = this.Detector.webgl ? 
+                    new three.WebGLRenderer({
+                        antialias: true,
+                        clearColor: 0xeeeeee
+                    }) :
+                    new three.CanvasRenderer();
+                
+                this.renderer.setClearColorHex(0xBBBBBB, 1);
+                this.renderer.setSize( window.innerWidth, window.innerHeight );
+                $('#glcontent').append(this.renderer.domElement);
+    
+                this.scene = new three.Scene();
+                this.camera = new three.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 1, 10000);
+                this.camera.position.set(200, 200, 200);
+                this.camera.lookAt(new three.Vector3(0,0,0));
+                
+                this.scene.add(this.camera);
+                
+                var ambient = new three.AmbientLight(0xffffff);
+                var directional = new three.DirectionalLight(0xffffff);
+                directional.position.set(new three.Vector3(-1, -1, -1)).normalize();
+                this.scene.add(ambient);
+                this.scene.add(directional);
+                
+                var renderComponent = ComponentManager.Components.TerrainRenderer;
+                if (renderComponent) {
+                    renderComponent.SetScene(this.scene);
+                    renderComponent.SetCamera(this.camera);
+                    renderComponent.SetRenderer(this.renderer);
+                }
+            },
     
             Start: function() {
                 if (this.Running) {
@@ -36,7 +75,7 @@ define([
                 this.Running = true;
                 this.clock.start();
                 this.GameLoop();
-                ComponentManager.Components.TerrainGenerator.Regenerate(64,64,64);
+                ComponentManager.Components.TerrainGenerator.Regenerate(128);
                 Game.UI.Remove(Game, "Start", "Game Control");
                 Game.UI.Register(Game, "Stop", {folder: "Game Control"});
             },
