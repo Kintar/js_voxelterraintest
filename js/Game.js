@@ -23,6 +23,7 @@ define([
             },
             
             InitUI: function(ui) {
+                Game.UI = ui;
                 ui.Register(Game, "Start", {folder: "Game Control"});
             },
     
@@ -34,8 +35,8 @@ define([
                 this.Running = true;
                 this.clock.start();
                 this.GameLoop();
-                ComponentManager.Components.UI.Remove(Game, "Start", "Game Control");
-                ComponentManager.Components.UI.Register(Game, "Stop", {folder: "Game Control"});
+                Game.UI.Remove(Game, "Start", "Game Control");
+                Game.UI.Register(Game, "Stop", {folder: "Game Control"});
             },
     
             InitStats: function() {
@@ -66,8 +67,8 @@ define([
                 this.Running = false;
                 this.clock.stop();
                 
-                ComponentManager.Components.UI.Remove(Game, "Stop", "Game Control");
-                ComponentManager.Components.UI.Register(Game, "Start", {folder: "Game Control"});
+                Game.UI.Remove(Game, "Stop", "Game Control");
+                Game.UI.Register(Game, "Start", {folder: "Game Control"});
             },
             
             ToggleRunning: function() {

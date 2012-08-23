@@ -22,6 +22,7 @@ define(["thirdParty/dat.gui.min"], function(dat) {
             if (!this.folders[name]) {
                 var folder = this.ui.addFolder(name);
                 this.folders[name] = folder;
+                folder.open();
             }
         },
         
