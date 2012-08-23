@@ -3,7 +3,6 @@ define(function () {
         }
         
         ComponentManager.prototype = {
-            Initialized: false,
             PendingComponents: 0,
             Components: {},
             
@@ -27,8 +26,6 @@ define(function () {
             },
             
             Update: function(delta) {
-                if (!this.Initialized) return;
-                
                 for (var name in this.Components) {
                     var c = this.Components[name];
                     if (c && c.Update) {

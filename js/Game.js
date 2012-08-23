@@ -16,6 +16,9 @@ define([
                 }
                 
                 ComponentManager.LoadComponent("UI", this.InitUI);
+                ComponentManager.LoadComponent("TerrainGenerator", function(c) {
+                    c.Regenerate(256, 256, 256);
+                });
                 
                 this.InitStats();
                 

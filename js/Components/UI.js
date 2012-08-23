@@ -42,7 +42,7 @@ define(["thirdParty/dat.gui.min"], function(dat) {
                 ui = this.folders[options.folder];
             }
             
-            if (options && options.min && options.max) {
+            if (options && options.min !== "undefined" && options.max !== "undefined") {
                 controller = ui.add(object, property, options.min, options.max);
             }
             else {
