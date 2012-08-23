@@ -1,50 +1,83 @@
-define(["UI", "three.min", "Components", "Stats"], function(UI) {
-    var Game = {
-        TerrainTesselation: 0,
-        TerrainGeneration: 0,
-        Running: false,
-
-        Start: function() {
-            if (this.Running) return;
-
-            UI.Init(this);
-            this.InitStats();
-            this.Running = true;
-            this.Run();
-        },
-
-        InitStats: function() {
-            if (this.stats) return;
+define([
+        "ComponentManager",
+        "thirdParty/Stats",
+        "thirdParty/three.min"
+    ],
+    function(ComponentManager, Stats, three) {
+        var Game = {
+            Run: false,
+            Running: false,
+            Initialized: false,
             
-            var stats = new Stats();
-            stats.domElement.style.position = "absolute";
-            stats.domElement.style.left = "0px";
-            stats.domElement.style.bottom = "0px";
+            Init: function() {
+                if (this.Initialized) {
+                    console.warn("Attempted to call Game.Init() more than once");
+                    return;
+                }
+                
+                ComponentManager.LoadComponent("UI", this.InitUI);
+                
+                this.InitStats();
+                
+                this.clock = new three.Clock();
+            },
             
-            document.body.appendChild(stats.domElement);
-            
-            this.stats = stats;
-        },
-
-        Run: function() {
-            if (Game.Running) requestAnimationFrame(Game.Run);
-
-            Game.Update();
-        },
-
-        Update: function() {
-            this.stats.begin();
-
-            UI.Update();
-            Game.TerrainTesselation = 0;
-            
-            this.stats.end();
-        },
-        
-        Stop: function() {
-            this.Running = false;
-        }
-    };
+            InitUI: function(ui) {
+                ui.Register(Game, "Start", {folder: "Game Control"});
+            },
     
-    return Game;
-});
+            Start: function() {
+                if (this.Running) {
+                    return;
+                }
+    
+                this.Running = true;
+                this.clock.start();
+                this.GameLoop();
+                ComponentManager.Components.UI.Remove(Game, "Start", "Game Control");
+                ComponentManager.Components.UI.Register(Game, "Stop", {folder: "Game Control"});
+            },
+    
+            InitStats: function() {
+                if (this.stats) return;
+    
+                var stats = new Stats();
+                stats.domElement.style.position = "absolute";
+                stats.domElement.style.left = "0px";
+                stats.domElement.style.bottom = "0px";
+    
+                document.body.appendChild(stats.domElement);
+    
+                this.stats = stats;
+            },
+    
+            GameLoop: function() {
+                if (Game.Running) {
+                    window.requestAnimationFrame(Game.GameLoop);
+                    
+                    Game.stats.update();
+                    ComponentManager.Update(Game.clock.getDelta());
+                }
+            },
+
+            Stop: function() {
+                if (!this.Running) return;
+                
+                this.Running = false;
+                this.clock.stop();
+                
+                ComponentManager.Components.UI.Remove(Game, "Stop", "Game Control");
+                ComponentManager.Components.UI.Register(Game, "Start", {folder: "Game Control"});
+            },
+            
+            ToggleRunning: function() {
+                if (this.Running)
+                    this.Stop();
+                else 
+                    this.Start();
+            }
+        };
+    
+        return Game;
+    }
+);
