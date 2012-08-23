@@ -4,11 +4,14 @@ define(["lib/simplexnoise", "thirdParty/three.min", "Components/UI"], function(n
         this.noise = new noise();
         this.clock = new three.Clock();
         UI.Register(this, "Generation", {min: 0, max: 100, autoUpdate: true, folder: 'Terrain'});
+        UI.Register(this, "Tesselation", {min: 0, max: 100, autoUpdate: true, folder: 'Terrain'});
     };
     
     TerrainGenerator.prototype = {
         Generation: 0,
+        Tesselation: 0,
         Generating: false,
+        Tesselating: false,
         
         Regenerate: function(width, depth, height) {
             console.log("Requested generation of terrain", width, depth, height);
@@ -18,6 +21,8 @@ define(["lib/simplexnoise", "thirdParty/three.min", "Components/UI"], function(n
             this.depth = depth;
             this.targetVoxelCount = width * depth * height;
             this.terrainVoxels = [];
+            this.terrainVertices = [];
+            this.terrainMesh = null;
             
             this.currentHeight = this.height;
             this.currentWidth = this.width;
@@ -25,13 +30,24 @@ define(["lib/simplexnoise", "thirdParty/three.min", "Components/UI"], function(n
             
             this.Generation = 0;
             this.Generating = true;
+            this.Tesselating = 0;
         },
         
         Update: function() {
-            if (!this.Generating) return;
+            if (!this.Generating && !this.Tesselating) return;
             
             this.clock.start();
 
+            if (this.Generating)
+                this.GenerationStep();
+                
+            if (this.Tesselating)
+                this.TesselationStep();
+
+            this.clock.stop();
+        },
+        
+        GenerationStep: function() {
             // We want to generate at leaast one depth slice per update, and we'll
             // continue to generate more slices as long as it takes us around
             // 1/120th of a second to do so
@@ -42,6 +58,7 @@ define(["lib/simplexnoise", "thirdParty/three.min", "Components/UI"], function(n
                     console.log("Terrain generation complete.  Voxels:", this.terrainVoxels.length)
                     this.Generating = false;
                     this.Generation = 100;
+                    this.Tesselating = true;
                     break;
                 }
                 
@@ -58,9 +75,10 @@ define(["lib/simplexnoise", "thirdParty/three.min", "Components/UI"], function(n
 
                 elapsed += this.clock.getDelta();
             }
+        },
+        
+        TesselationStep: function() {
             
-            console.log("Yielding to render.  Elapsed time", elapsed, "Progress", this.Generation);
-            this.clock.stop();
         }
     };
     

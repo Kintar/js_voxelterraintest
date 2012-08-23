@@ -38,6 +38,7 @@ define([
                 this.Running = true;
                 this.clock.start();
                 this.GameLoop();
+                ComponentManager.Components.TerrainGenerator.Regenerate(256,256,256);
                 Game.UI.Remove(Game, "Start", "Game Control");
                 Game.UI.Register(Game, "Stop", {folder: "Game Control"});
             },
@@ -79,6 +80,20 @@ define([
                     this.Stop();
                 else 
                     this.Start();
+            },
+            
+            Detector: {
+                canvas: !! window.CanvasRenderingContext2D,
+                webgl: (function() {
+                    try {
+                        return !!window.WebGLRenderingContext && !! document.createElement('canvas').getContext('experimental-webgl');
+                    }
+                    catch (e) {
+                        return false;
+                    }
+                })(),
+                workers: !! window.Worker,
+                fileapi: window.File && window.FileReader && window.FileList && window.Blob
             }
         };
     
