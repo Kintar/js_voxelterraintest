@@ -51,6 +51,8 @@ define([
                 this.camera.position.set(200, 200, 200);
                 this.camera.lookAt(new three.Vector3(0,0,0));
                 
+                //this.cameraControls = new three.TrackballControls(this.camera, $('#glcontent'));
+                
                 this.scene.add(this.camera);
                 
                 var ambient = new three.AmbientLight(0xffffff);

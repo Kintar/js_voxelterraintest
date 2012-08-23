@@ -26,6 +26,7 @@ define(["lib/simplexnoise", "thirdParty/three.min", "Components/UI", "Components
         Generating: false,
         Tesselating: false,
         TesselatedVoxels: 0,
+        TerrainMaterial: new three.MeshLambertMaterial({diffuse: 0x660066}),
         
         SetRenderer: function(terrainRenderer) {
             this.renderer = terrainRenderer;
@@ -133,9 +134,9 @@ define(["lib/simplexnoise", "thirdParty/three.min", "Components/UI", "Components
                     var geom = new three.Geometry();
                     geom.vertices = this.terrainVertices;
                     geom.faces = this.terrainFaces;
-                    geom.computeFaceNormals();
+                    //geom.computeFaceNormals();
                     
-                    this.terrainMesh = new three.Mesh(geom, new three.MeshLambertMaterial());
+                    this.terrainMesh = new three.Mesh(geom, this.TerrainMaterial);
                     this.terrainMesh.position.set(0);
                     
                     if (this.renderer) {
@@ -174,8 +175,8 @@ define(["lib/simplexnoise", "thirdParty/three.min", "Components/UI", "Components
         
         GenerateFace: function(voxelNumber, facing) {
             // Bottom left inward vertex
-            var y = voxelNumber % (this.width * this.depth);
-            var z = voxelNumber % this.depth;
+            var y = Math.floor(voxelNumber / (this.width * this.depth));
+            var z = (voxelNumber % (this.width * this.depth)) % this.height;
             var x = voxelNumber % this.width;
             
             var vertices;
@@ -199,12 +200,14 @@ define(["lib/simplexnoise", "thirdParty/three.min", "Components/UI", "Components
                     break;
             }
             
-            for (var v in vertices) {
-                this.terrainVertices.push(vertices[v]);
+            if (vertices) {
+                for (var v in vertices) {
+                    this.terrainVertices.push(vertices[v]);
+                }
+                
+                var vertCount = this.terrainVertices.length - 1;
+                this.terrainFaces.push(new three.Face4(vertCount - 3, vertCount - 2, vertCount - 1, vertCount));
             }
-            
-            var vertCount = this.terrainVertices.length - 1;
-            this.terrainFaces.push(new three.Face4(vertCount - 3, vertCount - 2, vertCount - 1, vertCount));
         },
         
         VoxelNumberFrom: function(voxelNumber, facing) {
